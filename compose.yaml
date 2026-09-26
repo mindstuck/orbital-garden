@@ -1,0 +1,47 @@
+services:
+  9router:
+    image: decolua/9router:latest
+    container_name: 9router
+    restart: unless-stopped
+    ports:
+      - "20128:20128"
+    volumes:
+      - ./router/data:/app/data
+    env_file:
+      - .env
+    environment:
+      DATA_DIR: /app/data
+      PORT: 20128
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama/data:/root/.ollama
+
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ai
+      POSTGRES_USER: ai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./db/data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  py-server:
+    build: ./py-server   # Folder containing Dockerfile & code
+    container_name: py-server 
+    ports:
+      - "8000:8000"                    # Exposes port 8000 to your LAN
+    environment:
+      - DATABASE_URL=postgres://ai:${POSTGRES_PASSWORD}@db:5432/ai # Access other services by service name
+    restart: unless-stopped

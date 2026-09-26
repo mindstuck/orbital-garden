@@ -216,3 +216,29 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# PostgreSQL local data and backups
+pgdata/
+postgres-data/
+*.dump
+*.sql.gz
+
+# Docker local data
+docker-data/
+docker-volumes/
+
+# n8n local state and data
+.n8n/
+n8n-data/
+
+# 9router local state and data
+.9router/
+9router-data/
+
+# Ollama models and local state
+.ollama/
+models/
+
+# local data
+db/
+*/data/
