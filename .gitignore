@@ -242,3 +242,9 @@ models/
 # local data
 db/
 */data/
+*.wav
+*.webm
+*.opus
+*.mp3
+
+cuda_libs/

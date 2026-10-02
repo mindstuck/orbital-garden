@@ -1,21 +1,126 @@
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
+from fastapi.responses import HTMLResponse
 from stt import transcribe_audio
+from llm import get_response
 
 app = FastAPI()
 
+html = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Assistant</title>
+</head>
+<body>
+    <h1>Assistant</h1>
+
+    <button style="width: 200px; height: 50px;" id="recordButton">Press to Talk</button>
+    
+    <input type="text" id="textInput" placeholder="Type a message..." style="width: 300px; height: 30px;">
+    <input type="button" value="Send" onclick="sendText()" style="height: 36px;">
+
+    <ul id="messages"></ul>
+
+    <script>
+        const ws = new WebSocket(`wss://${window.location.host}/ws`);
+
+        const button = document.getElementById("recordButton");
+        const textInput = document.getElementById("textInput");
+        const messages = document.getElementById("messages");
+
+        let mediaRecorder;
+
+        ws.onmessage = function(event) {
+            const message = document.createElement("li");
+            message.textContent = event.data;
+            messages.appendChild(message);
+        };
+
+        button.onclick = async function() {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                stopRecording();
+            } else {
+                await startRecording();
+            }
+        };
+        
+        function sendText() {
+            const text = textInput.value;
+            if (text) {
+                ws.send(text);
+                textInput.value = "";
+            }
+        }
+        
+        async function startRecording() {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: true
+            });
+
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = function(event) {
+                if (event.data.size > 0) {
+                    console.log("Event data: ", event.data);
+                    ws.send(event.data);
+                }
+            };
+
+            mediaRecorder.start();
+            button.textContent = "Press to Send";
+        }
+
+        function stopRecording() {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                button.textContent = "Press to Talk";
+            }
+        }
+    </script>
+</body>
+</html>
+"""
+
 
 @app.get("/")
-def read_root():
-  return {"status": "ok"}
+async def get():
+    return HTMLResponse(html)
 
-@app.post("/voice")
-def process_voice(voice):
-    segments, info = transcribe_audio(voice)
-    return {"segments": segments, "info": info}
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+
+    try:
+        while True:
+            message = await websocket.receive()
+
+            if "text" in message:
+                print("Text:", message["text"])
+                response = get_response(message["text"])
+                await websocket.send_text(
+                    f"Message text was: {message['text']}; LLM response: {response}"
+                )
+
+            elif "bytes" in message:
+                audio = message["bytes"]
+
+                with open("voice.webm", "wb") as f:
+                    f.write(audio)
+
+                text = transcribe_audio("voice.webm")
+
+                if text is None:
+                    await websocket.send_text("Transcription failed (see server logs).")
+                else:
+                    response = get_response(text)
+                    await websocket.send_text(f"Transcribed audio: {text}; LLM response: {response}")
+
+    except Exception as e:
+        print(f"WebSocket closed or error: {e}")
   
-
-
 if __name__ == "__main__":
   # Must bind to 0.0.0.0 inside the container
   uvicorn.run(app, host="0.0.0.0", port=8000)
