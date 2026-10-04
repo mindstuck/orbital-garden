@@ -248,3 +248,7 @@ db/
 *.mp3
 
 cuda_libs/
+
+# Other local files
+*.pem
+*.txt
