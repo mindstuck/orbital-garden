@@ -235,7 +235,7 @@ n8n-data/
 .9router/
 9router-data/
 
-# Ollama models and local state
+# llama models and local state
 .ollama/
 models/
 
@@ -246,6 +246,10 @@ db/
 *.webm
 *.opus
 *.mp3
+
+# piper
+*.onnx
+*.onnx.*
 
 cuda_libs/
 

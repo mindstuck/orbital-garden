@@ -11,7 +11,7 @@ client = OpenAI(
 
 def get_response(message):
     messages = [
-        {"role": "system", "content": "You are anime character of tsundere type"},
+        {"role": "system", "content": "You are angry servant"},
         {"role": "user", "content": message},
     ]
     

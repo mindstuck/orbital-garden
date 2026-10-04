@@ -1,10 +1,13 @@
 import uvicorn
+import logging
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import HTMLResponse
 from stt import transcribe_audio
 from llm import get_response
+from tts import generate_audio
 
 app = FastAPI()
+logger = logging.getLogger(__name__)
 
 html = """
 <!DOCTYPE html>
@@ -24,6 +27,7 @@ html = """
 
     <script>
         const ws = new WebSocket(`wss://${window.location.host}/ws`);
+        ws.binaryType = "arraybuffer"
 
         const button = document.getElementById("recordButton");
         const textInput = document.getElementById("textInput");
@@ -32,9 +36,10 @@ html = """
         let mediaRecorder;
 
         ws.onmessage = function(event) {
-            const message = document.createElement("li");
-            message.textContent = event.data;
-            messages.appendChild(message);
+            console.log("event", event)
+            if (event.data instanceof ArrayBuffer) {
+                playWav(event.data)
+            }
         };
 
         button.onclick = async function() {
@@ -78,6 +83,25 @@ html = """
                 button.textContent = "Press to Talk";
             }
         }
+        
+        function playWav(rawData) {
+            const blob = rawData instanceof Blob
+                ? rawData
+                : new Blob([rawData], { type: "audio/wav" })
+
+            const url = URL.createObjectURL(blob)
+            const audio = new Audio(url)
+
+            audio.onended = () => {
+                URL.revokeObjectURL(url)
+            }
+
+            audio.play()
+                .catch(error => {
+                    URL.revokeObjectURL(url)
+                    console.error("Failed to play audio:", error)
+                })
+        }
     </script>
 </body>
 </html>
@@ -98,11 +122,13 @@ async def websocket_endpoint(websocket: WebSocket):
             message = await websocket.receive()
 
             if "text" in message:
-                print("Text:", message["text"])
+                logger.info('Websocket received text')
                 response = get_response(message["text"])
-                await websocket.send_text(
-                    f"Message text was: {message['text']}; LLM response: {response}"
-                )
+                audio_response = generate_audio(response)
+                await websocket.send_bytes(audio_response)
+                # await websocket.send_text(
+                #     f"Message text was: {message['text']}; LLM response: {response}"
+                # )
 
             elif "bytes" in message:
                 audio = message["bytes"]
@@ -116,11 +142,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_text("Transcription failed (see server logs).")
                 else:
                     response = get_response(text)
-                    await websocket.send_text(f"Transcribed audio: {text}; LLM response: {response}")
+                    audio_response = generate_audio(response)
+                    await websocket.send_bytes(audio_response)
+                    # await websocket.send_text(f"Transcribed audio: {text}; LLM response: {response}")
 
     except Exception as e:
         print(f"WebSocket closed or error: {e}")
-  
+
+
 if __name__ == "__main__":
   # Must bind to 0.0.0.0 inside the container
   uvicorn.run(app, host="0.0.0.0", port=8000)
