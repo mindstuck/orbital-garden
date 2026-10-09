@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -58,9 +59,15 @@ def _suffix_for_mime(mime: str) -> str:
 class _Session:
     """Per-connection turn state and streaming pipeline."""
 
-    def __init__(self, coordinator: AssistantCoordinator, gpu_lock: asyncio.Semaphore) -> None:
+    def __init__(
+        self,
+        coordinator: AssistantCoordinator,
+        gpu_lock: asyncio.Semaphore,
+        conversation_id: str,
+    ) -> None:
         self._coordinator = coordinator
         self._gpu_lock = gpu_lock
+        self._conversation_id = conversation_id
         self._audio: _AudioTurn | None = None
 
     async def on_text(self, websocket: WebSocket, raw: str) -> None:
@@ -192,7 +199,7 @@ class _Session:
             return not cancel.is_set()
 
         try:
-            for audio in self._coordinator.stream_reply(text):
+            for audio in self._coordinator.stream_reply(text, self._conversation_id):
                 if cancel.is_set():
                     break
                 if not emit(("audio", audio)):
@@ -250,7 +257,7 @@ def create_app(settings: Settings, coordinator: AssistantCoordinator) -> FastAPI
             return
 
         await websocket.accept()
-        session = _Session(coordinator, gpu_lock)
+        session = _Session(coordinator, gpu_lock, conversation_id=uuid.uuid4().hex)
         try:
             while True:
                 message = await websocket.receive()

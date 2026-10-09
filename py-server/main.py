@@ -13,6 +13,7 @@ from pipeline.coordinator import AssistantCoordinator
 from providers.llama_llm import LlamaCppLLM
 from providers.piper_tts import PiperTTS
 from providers.whisper_stt import WhisperSTT
+from store import build_store
 
 logging.basicConfig(level=logging.INFO)
 
@@ -39,6 +40,8 @@ coordinator = AssistantCoordinator(
     ),
     tts=PiperTTS(settings.tts_voice_path),
     system_prompt=settings.system_prompt,
+    store=build_store(settings.store_backend),
+    history_max_messages=settings.history_max_messages,
 )
 
 app = create_app(settings, coordinator)

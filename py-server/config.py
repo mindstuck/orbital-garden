@@ -49,6 +49,13 @@ def _env_csv(env: dict[str, str], name: str) -> tuple[str, ...]:
     return tuple(item.strip() for item in raw.split(",") if item.strip())
 
 
+def _env_bool(env: dict[str, str], name: str, default: bool) -> bool:
+    raw = env.get(name)
+    if raw is None or raw == "":
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass(frozen=True)
 class Settings:
     # Client-facing WebSocket / HTTP server.
@@ -86,6 +93,12 @@ class Settings:
     # Assistant behaviour.
     system_prompt: str = DEFAULT_SYSTEM_PROMPT
     persona: str = "character"
+
+    # Conversation storage (opt-in).
+    store_backend: str = "none"
+    history_max_messages: int = 20
+    database_url: str = ""
+    transcript_persistence: bool = False
 
     def llm_extra_body(self) -> dict[str, float | int]:
         """Provider-specific sampling parameters kept out of the coordinator."""
@@ -128,6 +141,10 @@ class Settings:
             tts_voice_path=_env(source, "TTS_VOICE_PATH", "./voices/hal.onnx"),
             system_prompt=_env(source, "SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT),
             persona=_env(source, "PERSONA", "character"),
+            store_backend=_env(source, "STORE_BACKEND", "none"),
+            history_max_messages=_env_int(source, "HISTORY_MAX_MESSAGES", 20),
+            database_url=_env(source, "DATABASE_URL", ""),
+            transcript_persistence=_env_bool(source, "TRANSCRIPT_PERSISTENCE", False),
         )
         settings.validate()
         return settings
@@ -150,5 +167,9 @@ class Settings:
             errors.append("STT_BEAM_SIZE must be at least 1.")
         if not 1 <= self.port <= 65535:
             errors.append("PORT must be a valid TCP port.")
+        if self.store_backend not in {"none", "memory", "postgres"}:
+            errors.append("STORE_BACKEND must be one of: none, memory, postgres.")
+        if self.history_max_messages < 0:
+            errors.append("HISTORY_MAX_MESSAGES must not be negative.")
         if errors:
             raise ConfigError("Invalid configuration:\n- " + "\n- ".join(errors))

@@ -15,7 +15,6 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgres://ai:${POSTGRES_PASSWORD}@db:5432/ai
       # Internal service DNS over plain HTTP. Override to target another
       # OpenAI-compatible endpoint if needed.
       - LLM_API_URL=${LLM_API_URL:-http://llama-server:8000/v1}
@@ -28,7 +27,6 @@ services:
       - UVICORN_RELOAD=${UVICORN_RELOAD:-0}
     depends_on:
       - llama-server
-      - db
     restart: unless-stopped
     deploy:
       resources:
@@ -59,17 +57,20 @@ services:
               count: 1
               capabilities: [gpu]
 
-  # ========== Database (internal only) ==========
+  # ========== Database (optional, not started by default) ==========
   db:
     image: pgvector/pgvector:0.8.7-pg17-bookworm
     container_name: db
+    # Enabled with `docker compose --profile db up`. Not consumed by the
+    # pipeline until the persistence milestone; see ADR 0002.
+    profiles: ["db"]
     restart: unless-stopped
     environment:
       POSTGRES_DB: ai
       POSTGRES_USER: ai
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - ./db/data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     expose:
       - "5432"   # reachable on the Compose network, not published to the host
 
@@ -77,3 +78,4 @@ services:
 
 volumes:
   huggingface_cache:
+  db_data:
