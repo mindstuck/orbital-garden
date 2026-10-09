@@ -9,11 +9,13 @@ import logging
 
 from api.server import create_app
 from config import Settings
+from personas import resolve_system_prompt
 from pipeline.coordinator import AssistantCoordinator
 from providers.llama_llm import LlamaCppLLM
 from providers.piper_tts import PiperTTS
 from providers.whisper_stt import WhisperSTT
 from store import build_store
+from tools import build_default_registry
 
 logging.basicConfig(level=logging.INFO)
 
@@ -39,12 +41,12 @@ coordinator = AssistantCoordinator(
         extra_body=settings.llm_extra_body(),
     ),
     tts=PiperTTS(settings.tts_voice_path),
-    system_prompt=settings.system_prompt,
+    system_prompt=resolve_system_prompt(settings.persona, settings.system_prompt),
     store=build_store(settings.store_backend),
     history_max_messages=settings.history_max_messages,
 )
 
-app = create_app(settings, coordinator)
+app = create_app(settings, coordinator, tools=build_default_registry())
 
 if __name__ == "__main__":
     import uvicorn

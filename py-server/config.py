@@ -9,11 +9,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 
-DEFAULT_SYSTEM_PROMPT = (
-    "You are a fictional kuudere anime companion. Stay in character, keep "
-    "replies concise, and speak naturally out loud."
-)
-
 
 class ConfigError(ValueError):
     """Raised when the environment contains invalid configuration."""
@@ -90,9 +85,9 @@ class Settings:
     # Text-to-speech.
     tts_voice_path: str = "./voices/hal.onnx"
 
-    # Assistant behaviour.
-    system_prompt: str = DEFAULT_SYSTEM_PROMPT
-    persona: str = "character"
+    # Assistant behaviour. `system_prompt` overrides the selected persona.
+    system_prompt: str | None = None
+    persona: str = "assistant"
 
     # Conversation storage (opt-in).
     store_backend: str = "none"
@@ -139,8 +134,8 @@ class Settings:
             stt_language=_env(source, "STT_LANGUAGE", "en"),
             stt_beam_size=_env_int(source, "STT_BEAM_SIZE", 5),
             tts_voice_path=_env(source, "TTS_VOICE_PATH", "./voices/hal.onnx"),
-            system_prompt=_env(source, "SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT),
-            persona=_env(source, "PERSONA", "character"),
+            system_prompt=_env(source, "SYSTEM_PROMPT", "") or None,
+            persona=_env(source, "PERSONA", "assistant"),
             store_backend=_env(source, "STORE_BACKEND", "none"),
             history_max_messages=_env_int(source, "HISTORY_MAX_MESSAGES", 20),
             database_url=_env(source, "DATABASE_URL", ""),

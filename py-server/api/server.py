@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 
 from config import Settings
 from pipeline.coordinator import AssistantCoordinator
+from tools import ToolRegistry
 
 from .protocol import (
     MAX_AUDIO_FRAME_BYTES,
@@ -236,9 +237,17 @@ def _origin_allowed(websocket: WebSocket, allowed_origins: tuple[str, ...]) -> b
     return origin_host == websocket.headers.get("host", "")
 
 
-def create_app(settings: Settings, coordinator: AssistantCoordinator) -> FastAPI:
+def create_app(
+    settings: Settings,
+    coordinator: AssistantCoordinator,
+    tools: ToolRegistry | None = None,
+) -> FastAPI:
     app = FastAPI(title="ai-stack py-server")
     gpu_lock = asyncio.Semaphore(settings.max_gpu_concurrency)
+
+    # Tool execution is exposed as an extension point; it is not part of the
+    # chat loop yet (see docs/decisions/0004-coding-agent-boundary.md).
+    app.state.tools = tools
 
     app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
 
