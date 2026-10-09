@@ -260,5 +260,10 @@ py-server/voices/
 py-server/certs/
 
 # Other local files
+# Broad secret-file rules are intentional defense-in-depth: there are no
+# intentionally tracked keys or certificates in this repository.
 *.pem
-*.txt
+*.key
+
+# Runtime text artifacts use explicit paths so tracked docs/source stay visible
+py-server/transcribed_text.txt
