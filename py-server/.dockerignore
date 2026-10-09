@@ -1,20 +1,57 @@
+# Version control / editor metadata
 .git
+.gitignore
+.DS_Store
+
+# Python virtualenvs, bytecode and caches
 .venv
 venv
+env
 __pycache__
 *.pyc
 *.pyo
 *.pyd
 .Python
+.ruff_cache
+.mypy_cache
+.pytest_cache
+*.egg-info
+
+# Environment / secrets
 .env
-*.log
+.env.*
+!.env.example
+
+# TLS material must never be baked into an image.
+# Certificates are mounted or injected at runtime only when TLS is enabled.
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+certs/
+secrets/
+
+# Local runtime data and user content (audio, transcripts, databases)
 *.wav
 *.mp3
 *.ogg
 *.webm
+*.opus
+*.flac
+*.m4a
+transcribed_text.txt
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+
+# Downloaded model / voice / library assets (provisioned as runtime volumes)
+models/
 voices/
+cuda_libs/
 *.pt
 *.bin
 *.onnx
 *.gguf
-.DS_Store
