@@ -1,8 +1,10 @@
 """Provider-neutral interfaces for the assistant pipeline."""
+
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator, Protocol
+from typing import Protocol
 
 
 @dataclass(frozen=True)

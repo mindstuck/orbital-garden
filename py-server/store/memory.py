@@ -3,6 +3,7 @@
 Nothing is written to disk, so this is safe by default. Memory is bounded per
 conversation to avoid unbounded growth in a long-running process.
 """
+
 from __future__ import annotations
 
 import threading
@@ -16,9 +17,7 @@ from .base import ConversationStore, Message
 class InMemoryConversationStore(ConversationStore):
     def __init__(self, max_messages_per_conversation: int = 200) -> None:
         self._max = max_messages_per_conversation
-        self._data: dict[str, deque[Message]] = defaultdict(
-            lambda: deque(maxlen=self._max)
-        )
+        self._data: dict[str, deque[Message]] = defaultdict(lambda: deque(maxlen=self._max))
         self._lock = threading.Lock()
 
     def append(self, conversation_id: str, role: str, content: str) -> Message:

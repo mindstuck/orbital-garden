@@ -3,6 +3,7 @@
 Wires validated settings, provider adapters and the turn coordinator into the
 FastAPI/WebSocket edge. Uvicorn imports this module as ``main:app``.
 """
+
 from __future__ import annotations
 
 import logging

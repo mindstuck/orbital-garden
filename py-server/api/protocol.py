@@ -24,6 +24,7 @@ Text frames carry JSON:
 
 Binary frames carry ordered WAV audio chunks for the current turn.
 """
+
 from __future__ import annotations
 
 import json

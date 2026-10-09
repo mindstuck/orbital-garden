@@ -3,6 +3,7 @@
 The voice is loaded once and synthesis is serialized because a single ONNX
 voice object is shared across requests. Output is produced in memory.
 """
+
 from __future__ import annotations
 
 import io

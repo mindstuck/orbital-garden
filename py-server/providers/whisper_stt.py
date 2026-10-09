@@ -1,4 +1,5 @@
 """Faster-whisper speech-to-text adapter."""
+
 from __future__ import annotations
 
 import io

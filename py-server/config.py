@@ -4,10 +4,11 @@ Configuration comes from the environment (Compose `environment`/`env_file`
 or a local `.env` loaded by the entrypoint). Nothing here imports fastapi,
 torch or the model servers, so it stays cheap to import and easy to test.
 """
+
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 class ConfigError(ValueError):
@@ -107,7 +108,7 @@ class Settings:
         }
 
     @classmethod
-    def from_env(cls, env: dict[str, str] | None = None) -> "Settings":
+    def from_env(cls, env: dict[str, str] | None = None) -> Settings:
         source = dict(os.environ if env is None else env)
         settings = cls(
             host=_env(source, "HOST", "0.0.0.0"),

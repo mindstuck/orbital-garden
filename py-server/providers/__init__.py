@@ -3,8 +3,8 @@ from .base import (
     LLMProvider,
     STTProvider,
     SynthesisResult,
-    TTSProvider,
     TranscriptionResult,
+    TTSProvider,
 )
 
 __all__ = [

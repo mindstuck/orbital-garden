@@ -9,6 +9,7 @@ can satisfy the same contract:
 - History is returned oldest-first and bounded by `limit`.
 - `delete` removes a conversation and its messages (retention/deletion).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

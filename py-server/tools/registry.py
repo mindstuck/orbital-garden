@@ -4,12 +4,14 @@ Tools are an extension point, not yet wired into the chat loop: generated text
 and memory remain separate from tool execution. Handlers run off the event
 loop with a per-tool timeout.
 """
+
 from __future__ import annotations
 
 import concurrent.futures
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Callable
+from datetime import UTC, datetime
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -33,9 +35,7 @@ class ToolResult:
 class ToolRegistry:
     def __init__(self) -> None:
         self._tools: dict[str, ToolSpec] = {}
-        self._pool = concurrent.futures.ThreadPoolExecutor(
-            max_workers=4, thread_name_prefix="tool"
-        )
+        self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="tool")
 
     def register(self, spec: ToolSpec) -> None:
         if spec.name in self._tools:
@@ -84,7 +84,7 @@ def _validate_arguments(spec: ToolSpec, arguments: dict[str, Any]) -> None:
 
 
 def _current_time(_arguments: dict[str, Any]) -> dict[str, str]:
-    return {"utc": datetime.now(timezone.utc).isoformat()}
+    return {"utc": datetime.now(UTC).isoformat()}
 
 
 CURRENT_TIME = ToolSpec(

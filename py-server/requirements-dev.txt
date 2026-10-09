@@ -1,3 +1,5 @@
 # Development-only dependencies (tests, linting, type checking).
-# Not required to run the server.
+# Not required to run the server. See py-server/pyproject.toml for config.
 pytest>=8.3,<9
+ruff>=0.6,<1
+mypy>=1.11,<2

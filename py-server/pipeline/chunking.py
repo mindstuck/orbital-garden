@@ -19,10 +19,11 @@ latency while still sounding natural. The policy is explicit and chunk-local:
 - Empty deltas/finish events and chunks that become empty after rendering are
   skipped without producing empty synthesis input.
 """
+
 from __future__ import annotations
 
 import re
-from typing import Iterable, Iterator
+from collections.abc import Iterable, Iterator
 
 # Flush unpunctuated text at the last whitespace before this many characters.
 HARD_FLUSH_CHARS = 400
@@ -31,12 +32,60 @@ _SENTENCE_BOUNDARY = re.compile(r"[.!?…]+[)\"'\]”’]*(?=\s)")
 _WORD_BEFORE_PERIOD = re.compile(r"([A-Za-z]+(?:\.[A-Za-z]+)*)\.$")
 
 _ABBREVIATIONS = {
-    "mr", "mrs", "ms", "dr", "prof", "sr", "jr", "st", "mt", "vs", "etc",
-    "eg", "ie", "no", "vol", "fig", "approx", "dept", "est", "inc", "ltd",
-    "co", "corp", "gov", "sen", "rep", "gen", "col", "capt", "lt", "sgt",
-    "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct",
-    "nov", "dec", "mon", "tue", "wed", "thu", "fri", "sat", "sun",
-    "uk", "us", "am", "pm",
+    "mr",
+    "mrs",
+    "ms",
+    "dr",
+    "prof",
+    "sr",
+    "jr",
+    "st",
+    "mt",
+    "vs",
+    "etc",
+    "eg",
+    "ie",
+    "no",
+    "vol",
+    "fig",
+    "approx",
+    "dept",
+    "est",
+    "inc",
+    "ltd",
+    "co",
+    "corp",
+    "gov",
+    "sen",
+    "rep",
+    "gen",
+    "col",
+    "capt",
+    "lt",
+    "sgt",
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "sept",
+    "oct",
+    "nov",
+    "dec",
+    "mon",
+    "tue",
+    "wed",
+    "thu",
+    "fri",
+    "sat",
+    "sun",
+    "uk",
+    "us",
+    "am",
+    "pm",
 }
 
 _MD_LINK = re.compile(r"\[([^\]]+)\]\([^)]*\)")
@@ -111,8 +160,3 @@ def chunk_text(text_deltas: Iterable[str]) -> Iterator[str]:
     final = render_for_speech(buffer)
     if final:
         yield final
-
-
-if __name__ == "__main__":
-    for item in chunk_text(["Hello, ", "world. ", "Dr. Smith ", "arrived at 3.14 p.m. today"]):
-        print(repr(item))

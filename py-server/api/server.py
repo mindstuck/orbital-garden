@@ -4,6 +4,7 @@ Only transport concerns live here: HTTP static delivery, the WebSocket
 contract, per-connection state, concurrency limiting and error framing.
 The assistant logic is delegated to :class:`pipeline.coordinator.AssistantCoordinator`.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -134,11 +135,13 @@ class _Session:
         result = await asyncio.to_thread(
             self._coordinator.transcribe, bytes(audio.buffer), _suffix_for_mime(audio.mime)
         )
-        if not result.ok:
+        if result.text is None:
             await self._send_error(
                 websocket,
                 turn_id,
-                ProtocolError("transcription_failed", result.error or "Could not transcribe the audio."),
+                ProtocolError(
+                    "transcription_failed", result.error or "Could not transcribe the audio."
+                ),
             )
             return
 
@@ -187,7 +190,11 @@ class _Session:
             pass
 
     def _produce(
-        self, loop: asyncio.AbstractEventLoop, queue: asyncio.Queue, cancel: threading.Event, text: str
+        self,
+        loop: asyncio.AbstractEventLoop,
+        queue: asyncio.Queue,
+        cancel: threading.Event,
+        text: str,
     ) -> None:
         def emit(item) -> bool:
             if cancel.is_set():
@@ -214,7 +221,9 @@ class _Session:
             except Exception:
                 pass
 
-    async def _send_error(self, websocket: WebSocket, turn_id: str | None, exc: ProtocolError) -> None:
+    async def _send_error(
+        self, websocket: WebSocket, turn_id: str | None, exc: ProtocolError
+    ) -> None:
         try:
             await websocket.send_text(
                 encode_event("error", turn_id=turn_id, code=exc.code, message=exc.message)

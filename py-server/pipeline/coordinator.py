@@ -4,11 +4,12 @@ The coordinator wires narrow provider interfaces together and knows nothing
 about HTTP, WebSockets, concurrency or wire formats. Transport concerns stay
 in :mod:`api.server`.
 """
+
 from __future__ import annotations
 
-from typing import Iterator
+from collections.abc import Iterator
 
-from providers.base import ChatMessage, LLMProvider, STTProvider, TTSProvider, TranscriptionResult
+from providers.base import ChatMessage, LLMProvider, STTProvider, TranscriptionResult, TTSProvider
 from store.base import ROLE_ASSISTANT, ROLE_USER, ConversationStore
 
 from .chunking import chunk_text
@@ -57,7 +58,7 @@ class AssistantCoordinator:
         reply_parts: list[str] = []
         for spoken in chunk_text(self._llm.stream_chat(messages)):
             result = self._tts.synthesize(spoken)
-            if not result.ok:
+            if result.audio is None:
                 raise PipelineError(result.error or "speech synthesis failed")
             reply_parts.append(spoken)
             yield result.audio

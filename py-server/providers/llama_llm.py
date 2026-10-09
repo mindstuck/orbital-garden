@@ -2,10 +2,11 @@
 
 Provider-specific sampling parameters live here, not in the coordinator.
 """
+
 from __future__ import annotations
 
 import logging
-from typing import Iterator
+from collections.abc import Iterator
 
 from openai import OpenAI
 

@@ -4,6 +4,7 @@
 short-term history. `postgres` is planned for the persistence milestone; it is
 not implemented yet and is rejected loudly rather than silently ignored.
 """
+
 from __future__ import annotations
 
 from config import ConfigError

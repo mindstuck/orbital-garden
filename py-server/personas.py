@@ -5,6 +5,7 @@ explicit (`PERSONA`), with `SYSTEM_PROMPT` acting as an override. This keeps
 the default assistant, a fictional character and a coding profile separable
 before wake-word or tool-call switching is added.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
