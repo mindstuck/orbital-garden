@@ -2,20 +2,13 @@
 
 Run from the py-server directory:
 
-    python -m pytest tests/test_text_chunker.py
+    python -m pytest tests/test_chunking.py
 """
-from types import SimpleNamespace
-
-from text_chunker import HARD_FLUSH_CHARS, chunk_text, render_for_speech
-
-
-def fake_stream(*pieces):
-    for piece in pieces:
-        yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=piece))])
+from pipeline.chunking import HARD_FLUSH_CHARS, chunk_text, render_for_speech
 
 
 def chunks(*pieces):
-    return list(chunk_text(fake_stream(*pieces)))
+    return list(chunk_text(pieces))
 
 
 def test_splits_on_sentence_boundaries():
@@ -53,10 +46,7 @@ def test_long_unpunctuated_output_is_bounded():
 
 
 def test_empty_deltas_and_finish_events_are_skipped():
-    finish = SimpleNamespace(choices=[])
-    empty = SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=None))])
-    stream = [empty, finish, *fake_stream("Hi. ")]
-    assert list(chunk_text(stream)) == ["Hi."]
+    assert list(chunk_text(["", None, "Hi. "])) == ["Hi."]
 
 
 def test_post_cleaning_empty_chunks_are_skipped():
@@ -65,7 +55,7 @@ def test_post_cleaning_empty_chunks_are_skipped():
 
 
 def test_emphasis_keeps_words():
-    assert list(chunk_text(fake_stream("*smiles warmly* Hello. "))) == ["smiles warmly Hello."]
+    assert chunks("*smiles warmly* Hello. ") == ["smiles warmly Hello."]
 
 
 def test_links_keep_text_and_bare_urls_are_dropped():

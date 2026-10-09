@@ -45,15 +45,6 @@ _MD_MARKERS = re.compile(r"[*_~`#]+")
 _WHITESPACE = re.compile(r"\s+")
 
 
-def _extract_content(chunk) -> str:
-    """Return streamed text content, tolerating finish/empty events."""
-    choices = getattr(chunk, "choices", None) or []
-    if not choices:
-        return ""
-    delta = getattr(choices[0], "delta", None)
-    return getattr(delta, "content", None) or ""
-
-
 def find_sentence_boundary(buffer: str) -> int | None:
     """Return the index just past the first real sentence boundary, if any."""
     for match in _SENTENCE_BOUNDARY.finditer(buffer):
@@ -89,11 +80,10 @@ def render_for_speech(text: str) -> str:
     return _WHITESPACE.sub(" ", text).strip()
 
 
-def chunk_text(llm_stream: Iterable) -> Iterator[str]:
-    """Yield speakable chunks from an OpenAI-style streaming response."""
+def chunk_text(text_deltas: Iterable[str]) -> Iterator[str]:
+    """Yield speakable chunks from a stream of LLM text deltas."""
     buffer = ""
-    for chunk in llm_stream:
-        content = _extract_content(chunk)
+    for content in text_deltas:
         if not content:
             continue
         buffer += content
@@ -124,14 +114,5 @@ def chunk_text(llm_stream: Iterable) -> Iterator[str]:
 
 
 if __name__ == "__main__":
-    from types import SimpleNamespace
-
-    def fake_stream(*pieces):
-        for piece in pieces:
-            yield SimpleNamespace(
-                choices=[SimpleNamespace(delta=SimpleNamespace(content=piece))]
-            )
-
-    demo = fake_stream("Hello, ", "world. ", "Dr. Smith ", "arrived at 3.14 p.m. today")
-    for item in chunk_text(demo):
+    for item in chunk_text(["Hello, ", "world. ", "Dr. Smith ", "arrived at 3.14 p.m. today"]):
         print(repr(item))

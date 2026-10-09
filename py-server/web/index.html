@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Assistant</title>
+</head>
+<body>
+    <h1>Assistant</h1>
+
+    <button style="width: 200px; height: 50px;" id="recordButton">Press to Talk</button>
+
+    <input type="text" id="textInput" placeholder="Type a message..." style="width: 300px; height: 30px;">
+    <input type="button" value="Send" id="sendButton" style="height: 36px;">
+
+    <div id="status" aria-live="polite"></div>
+    <ul id="messages"></ul>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
