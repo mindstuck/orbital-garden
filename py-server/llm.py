@@ -4,8 +4,11 @@ from openai import OpenAI
 
 load_dotenv()
 
+# Internal Compose service DNS by default; override for a different endpoint.
+LLM_API_URL = os.getenv("LLM_API_URL", "http://llama-server:8000/v1")
+
 client = OpenAI(
-    base_url="http://host.docker.internal:8300/v1",  # from another container on the same compose network: http://llama-server:8000/v1
+    base_url=LLM_API_URL,  # e.g. http://llama-server:8000/v1 on the Compose network
     api_key="not-needed",                 # required by the SDK, ignored by llama-server
 )
 

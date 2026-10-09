@@ -27,7 +27,8 @@ html = """
     <ul id="messages"></ul>
 
     <script>
-        const ws = new WebSocket(`wss://${window.location.host}/ws`);
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const ws = new WebSocket(`${wsScheme}://${window.location.host}/ws`);
         ws.binaryType = "arraybuffer"
 
         const button = document.getElementById("recordButton");

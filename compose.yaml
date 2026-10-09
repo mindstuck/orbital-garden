@@ -1,11 +1,13 @@
 services:
 
-# ========== Python Server ==========
+# ========== Python Server (only client-facing service) ==========
   py-server:
     build: ./py-server   # Folder containing Dockerfile & code
-    container_name: py-server 
+    container_name: py-server
     ports:
-      - "8400:8000"
+      # Only the user-facing endpoint is published. Set PY_SERVER_BIND to
+      # 127.0.0.1 for local-only access.
+      - "${PY_SERVER_BIND:-0.0.0.0}:${PY_SERVER_PORT:-8400}:8000"
     volumes:
       - ./py-server:/app
       - ./py-server/cuda_libs:/opt/cuda_libs:ro
@@ -14,7 +16,16 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgres://ai:${POSTGRES_PASSWORD}@db:5432/ai
-      - LLM_API_URL=http://llama-server:8000/v1
+      # Internal service DNS over plain HTTP. Override to target another
+      # OpenAI-compatible endpoint if needed.
+      - LLM_API_URL=${LLM_API_URL:-http://llama-server:8000/v1}
+      # Optional client-facing TLS. Set BOTH and mount certificate material
+      # read-only (e.g. - ./py-server/certs:/certs:ro). Leave unset to serve
+      # plain HTTP behind a reverse proxy or directly on the LAN.
+      - SSL_CERTFILE=${SSL_CERTFILE:-}
+      - SSL_KEYFILE=${SSL_KEYFILE:-}
+      # Opt-in development auto-reload; keep unset/0 in normal use.
+      - UVICORN_RELOAD=${UVICORN_RELOAD:-0}
     depends_on:
       - llama-server
       - db
@@ -27,7 +38,7 @@ services:
               count: 1
               capabilities: [gpu]
 
-# ========== LLM Server ==========      
+# ========== LLM Server (internal only) ==========
   llama-server:
     image: ghcr.io/ggml-org/llama.cpp:server-cuda-b5343
     container_name: llama-server
@@ -37,9 +48,9 @@ services:
       -ngl 24 -c 8192 -np 1 -fa on
       --cache-type-k q8_0 --cache-type-v q8_0
     volumes:
-      - ./models:/models
-    ports:
-      - "8300:8000"
+      - ./models:/models:ro
+    expose:
+      - "8000"   # reachable on the Compose network, not published to the host
     deploy:
       resources:
         reservations:
@@ -48,7 +59,7 @@ services:
               count: 1
               capabilities: [gpu]
 
-  # ========== Database ==========
+  # ========== Database (internal only) ==========
   db:
     image: pgvector/pgvector:0.8.7-pg17-bookworm
     container_name: db
@@ -59,33 +70,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - ./db/data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"   # reachable on the Compose network, not published to the host
 
-  # 9router:
-  #   image: decolua/9router:latest
-  #   container_name: 9router
-  #   restart: unless-stopped
-  #   ports:
-  #     - "20128:20128"
-  #   volumes:
-  #     - ./router/data:/app/data
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     DATA_DIR: /app/data
-  #     PORT: 20128
-  #     HOSTNAME: 0.0.0.0
-  #     NODE_ENV: production
-
-  # ollama:
-  #   image: ollama/ollama:latest
-  #   container_name: ollama
-  #   restart: unless-stopped
-  #   ports:
-  #     - "11434:11434"
-  #   volumes:
-  #     - ./ollama/data:/root/.ollama
+  # 9router and ollama are not active services.
 
 volumes:
   huggingface_cache:
