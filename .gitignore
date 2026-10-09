@@ -254,7 +254,8 @@ db/
 cuda_libs/
 
 # Downloaded Piper voices (provision as documented runtime assets)
-py-server/voices/
+py-server/voices/*
+!py-server/voices/README.md
 
 # TLS material and local certificates
 py-server/certs/

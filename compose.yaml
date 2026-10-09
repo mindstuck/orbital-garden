@@ -29,7 +29,7 @@ services:
 
 # ========== LLM Server ==========      
   llama-server:
-    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda-b5343
     container_name: llama-server
     command: >
       -m /models/L3-8B-Stheno-v3.2-Q4_K_M.gguf
@@ -50,7 +50,7 @@ services:
 
   # ========== Database ==========
   db:
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:0.8.7-pg17-bookworm
     container_name: db
     restart: unless-stopped
     environment:
