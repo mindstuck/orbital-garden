@@ -1,9 +1,8 @@
 import asyncio
 import logging
 import os
-import tempfile
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
 import uvicorn
@@ -290,8 +289,19 @@ def _origin_allowed(websocket: WebSocket) -> bool:
 class _AudioTurn:
     turn_id: str
     mime: str
-    path: str
+    buffer: bytearray = field(default_factory=bytearray)
     size: int = 0
+
+
+def _suffix_for_mime(mime: str) -> str:
+    return {
+        "audio/webm": ".webm",
+        "audio/wav": ".wav",
+        "audio/x-wav": ".wav",
+        "audio/ogg": ".ogg",
+        "audio/mp4": ".mp4",
+        "audio/mpeg": ".mp3",
+    }.get(mime, ".webm")
 
 
 class _Session:
@@ -299,7 +309,6 @@ class _Session:
 
     def __init__(self) -> None:
         self._audio: _AudioTurn | None = None
-        self._handle = None
 
     async def on_text(self, websocket: WebSocket, raw: str) -> None:
         try:
@@ -337,17 +346,12 @@ class _Session:
             await self._discard_audio()
             return
 
-        if self._handle is None:
-            self._handle = open(self._audio.path, "ab")
-        self._handle.write(data)
+        self._audio.buffer.extend(data)
         self._audio.size += len(data)
 
     async def _start_audio(self, websocket: WebSocket, event: AudioStart) -> None:
         await self._discard_audio()
-        fd, path = tempfile.mkstemp(prefix="turn-", suffix=".webm")
-        os.close(fd)
-        self._audio = _AudioTurn(turn_id=event.turn_id, mime=event.mime, path=path)
-        self._handle = open(path, "wb")
+        self._audio = _AudioTurn(turn_id=event.turn_id, mime=event.mime)
         await websocket.send_text(encode_event("status", turn_id=event.turn_id, state="recording"))
 
     async def _finish_audio(self, websocket: WebSocket, turn_id: str) -> None:
@@ -358,32 +362,28 @@ class _Session:
             return
 
         audio = self._audio
-        if self._handle is not None:
-            self._handle.close()
-            self._handle = None
         self._audio = None
 
-        try:
-            if audio.size == 0:
-                await self._send_error(
-                    websocket, turn_id, ProtocolError("empty_audio", "No audio received for the turn.")
-                )
-                return
+        if audio.size == 0:
+            await self._send_error(
+                websocket, turn_id, ProtocolError("empty_audio", "No audio received for the turn.")
+            )
+            return
 
-            await websocket.send_text(encode_event("status", turn_id=turn_id, state="transcribing"))
-            text = await asyncio.to_thread(transcribe_audio, audio.path)
-            if not text:
-                await self._send_error(
-                    websocket,
-                    turn_id,
-                    ProtocolError("transcription_failed", "Could not transcribe the audio."),
-                )
-                return
+        await websocket.send_text(encode_event("status", turn_id=turn_id, state="transcribing"))
+        result = await asyncio.to_thread(
+            transcribe_audio, bytes(audio.buffer), _suffix_for_mime(audio.mime)
+        )
+        if not result.ok:
+            await self._send_error(
+                websocket,
+                turn_id,
+                ProtocolError("transcription_failed", result.error or "Could not transcribe the audio."),
+            )
+            return
 
-            await websocket.send_text(encode_event("transcript", turn_id=turn_id, text=text))
-            await self._run_turn(websocket, turn_id, text)
-        finally:
-            self._remove(audio.path)
+        await websocket.send_text(encode_event("transcript", turn_id=turn_id, text=result.text))
+        await self._run_turn(websocket, turn_id, result.text)
 
     async def _run_turn(self, websocket: WebSocket, turn_id: str, text: str) -> None:
         await websocket.send_text(encode_event("status", turn_id=turn_id, state="thinking"))
@@ -443,8 +443,11 @@ class _Session:
             for spoken in chunk_text(response_stream):
                 if cancel.is_set():
                     break
-                audio = generate_audio(spoken)
-                if audio and not emit(("audio", audio)):
+                result = generate_audio(spoken)
+                if not result.ok:
+                    emit(("error", result.error or "speech synthesis failed"))
+                    break
+                if not emit(("audio", result.audio)):
                     break
         except Exception as exc:  # noqa: BLE001 - surface any pipeline failure to the client
             logger.exception("turn pipeline failed")
@@ -464,24 +467,10 @@ class _Session:
             pass
 
     async def _discard_audio(self) -> None:
-        if self._handle is not None:
-            self._handle.close()
-            self._handle = None
-        if self._audio is not None:
-            self._remove(self._audio.path)
-            self._audio = None
+        self._audio = None
 
     async def aclose(self) -> None:
         await self._discard_audio()
-
-    @staticmethod
-    def _remove(path: str | None) -> None:
-        if not path:
-            return
-        try:
-            os.remove(path)
-        except OSError:
-            pass
 
 
 @app.get("/")
