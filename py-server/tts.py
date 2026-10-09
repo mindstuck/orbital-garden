@@ -5,7 +5,7 @@ def generate_audio(text):
     if not text:
         return
     
-    voice = PiperVoice.load("./voices/en_US-danny-low.onnx")
+    voice = PiperVoice.load("./voices/hal.onnx")
     with wave.open("test.wav", "wb") as wav_file:
         voice.synthesize_wav(text, wav_file)
         

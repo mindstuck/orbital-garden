@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse
 from stt import transcribe_audio
 from llm import get_response
 from tts import generate_audio
+from text_chunker import chunk_text
 
 app = FastAPI()
 logger = logging.getLogger(__name__)
@@ -34,11 +35,16 @@ html = """
         const messages = document.getElementById("messages");
 
         let mediaRecorder;
+        let playBuffer = [];
 
         ws.onmessage = function(event) {
-            console.log("event", event)
             if (event.data instanceof ArrayBuffer) {
-                playWav(event.data)
+                
+                if (!playing) {
+                    playWav(event.data);
+                } else {
+                    playBuffer.push(event.data);
+                }
             }
         };
 
@@ -84,23 +90,32 @@ html = """
             }
         }
         
+        var playing = false;
         function playWav(rawData) {
+            playing = true;
+
             const blob = rawData instanceof Blob
                 ? rawData
-                : new Blob([rawData], { type: "audio/wav" })
+                : new Blob([rawData], { type: "audio/wav" });
 
-            const url = URL.createObjectURL(blob)
-            const audio = new Audio(url)
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
 
             audio.onended = () => {
-                URL.revokeObjectURL(url)
-            }
+                URL.revokeObjectURL(url);
 
-            audio.play()
-                .catch(error => {
-                    URL.revokeObjectURL(url)
-                    console.error("Failed to play audio:", error)
-                })
+                if (playBuffer.length) {
+                    playWav(playBuffer.shift());
+                } else {
+                    playing = false;
+                }
+            };
+
+            audio.play().catch(error => {
+                URL.revokeObjectURL(url);
+                playing = false;
+                console.error("Failed to play audio:", error);
+            });
         }
     </script>
 </body>
@@ -123,9 +138,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if "text" in message:
                 logger.info('Websocket received text')
-                response = get_response(message["text"])
-                audio_response = generate_audio(response)
-                await websocket.send_bytes(audio_response)
+                stream = get_response(message["text"])
+                
+                for chunk in chunk_text(stream):
+                    audio_response = generate_audio(chunk)
+                    await websocket.send_bytes(audio_response)
                 # await websocket.send_text(
                 #     f"Message text was: {message['text']}; LLM response: {response}"
                 # )
@@ -141,9 +158,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 if text is None:
                     await websocket.send_text("Transcription failed (see server logs).")
                 else:
-                    response = get_response(text)
-                    audio_response = generate_audio(response)
-                    await websocket.send_bytes(audio_response)
+                    responseStream = get_response(text)
+                    for chunk in chunk_text(responseStream):
+                        audio_response = generate_audio(chunk)
+                        await websocket.send_bytes(audio_response)
                     # await websocket.send_text(f"Transcribed audio: {text}; LLM response: {response}")
 
     except Exception as e:

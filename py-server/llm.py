@@ -9,13 +9,14 @@ client = OpenAI(
     api_key="not-needed",                 # required by the SDK, ignored by llama-server
 )
 
+# TODO: get_response + get_response_stream functions
 def get_response(message):
     messages = [
-        {"role": "system", "content": "You are angry servant"},
+        {"role": "system", "content": "You are kuundere animer character"},
         {"role": "user", "content": message},
     ]
     
-    resp = client.chat.completions.create(
+    stream = client.chat.completions.create(
         model="stheno",          # required by the SDK, ignored when the server has one model loaded
         messages=messages,
         temperature=0.9,
@@ -32,10 +33,11 @@ def get_response(message):
             # "xtc_probability": 0.5,
             # "xtc_threshold": 0.1,
         },
+        stream=True
     )
     
-    return resp.choices[0].message.content
+    return stream
 
 
 if __name__ == "__main__":
-    print(get_response("Sing."))
+    print(get_response("What is your religion?."))
