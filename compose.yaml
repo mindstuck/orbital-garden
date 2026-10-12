@@ -38,7 +38,7 @@ services:
 
 # ========== LLM Server (internal only) ==========
   llama-server:
-    image: ghcr.io/ggml-org/llama.cpp:server-cuda-b5343
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda12-b11552
     container_name: llama-server
     command: >
       -m /models/L3-8B-Stheno-v3.2-Q4_K_M.gguf
