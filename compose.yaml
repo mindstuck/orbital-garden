@@ -57,6 +57,21 @@ services:
               count: 1
               capabilities: [gpu]
 
+# ========== Caddy (reverse proxy) ==========
+  caddy:
+    image: caddybuilds/caddy-cloudflare:latest
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file: 
+      - .env
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ./caddy/caddy_data:/data
+      - ./caddy/caddy_config:/config
+
   # ========== Database (optional, not started by default) ==========
   db:
     image: pgvector/pgvector:0.8.7-pg17-bookworm
@@ -80,3 +95,5 @@ services:
 volumes:
   huggingface_cache:
   db_data:
+  caddy_data:
+  caddy_config:

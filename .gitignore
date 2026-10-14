@@ -268,3 +268,7 @@ py-server/certs/
 
 # Runtime text artifacts use explicit paths so tracked docs/source stay visible
 py-server/transcribed_text.txt
+
+# Caddy
+caddy_data/
+caddy_config/
