@@ -3,11 +3,12 @@
 # Install with:  pip install -r py-server/requirements.txt
 # Versions are constrained to compatible ranges so a clean install is
 # reproducible without silently pulling a breaking major release.
-fastapi>=0.115,<0.116
-uvicorn[standard]>=0.32,<0.33
-faster-whisper>=1.1,<2
-numpy>=1.26,<3
-pydantic>=2.9,<3
-openai>=1.54,<2
-piper-tts>=1.2,<1.3
-python-dotenv>=1.0,<2
+fastapi>=0.143,<0.144
+uvicorn[standard]>=0.54,<0.55
+faster-whisper>=1.2,<2
+av>=15,<19          # faster-whisper needs metadata_errors, removed in av 19
+numpy>=2.5,<3
+pydantic>=2.14,<3
+openai>=3.31,<4
+piper-tts>=1.8,<1.9
+python-dotenv>=1.2,<2
