@@ -1,4 +1,4 @@
-# ai-stack
+# orbital-garden
 
 A single-user, LAN-oriented local AI stack: a browser voice/text client talking
 to a Python pipeline that runs speech-to-text, a local LLM and text-to-speech,
